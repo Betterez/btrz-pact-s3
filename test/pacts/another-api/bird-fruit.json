@@ -1,0 +1,28 @@
+{
+  "consumer": {
+    "name": "bird"
+  },
+  "provider": {
+    "name": "fruit"
+  },
+  "interactions": [
+    {
+      "description": "the fruit for the bird",
+      "request": {
+        "method": "GET",
+        "path": "/bird/fruit"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json; charset=utf-8"
+        },
+        "body": {
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "pactSpecificationVersion": "1.0.0"
+  }
+}

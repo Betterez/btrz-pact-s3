@@ -1,0 +1,40 @@
+{
+  "name": "btrz-pact-s3",
+  "version": "0.3.0",
+  "description": "A consumer-driven Pact library for NodeJs to publish pacts to AWS S3 and verify them",
+  "main": "index.js",
+  "scripts": {
+    "test": "NODE_ENV=test multi='xunit=test-results/xunit.xml spec=-' node_modules/istanbul/lib/cli.js cover node_modules/mocha/bin/_mocha -- --ui bdd -R mocha-multi -t 15000 test/*.js",
+    "test-w": "NODE_ENV=test node_modules/mocha/bin/mocha -w test/*.js",
+    "publish": "publish"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Betterez/btrz-pact-s3.git"
+  },
+  "keywords": [
+    "pact"
+  ],
+  "author": "Betterez",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Betterez/btrz-pact-s3/issues"
+  },
+  "homepage": "https://github.com/Betterez/btrz-pact-s3",
+  "dependencies": {
+    "@pact-foundation/pact-node": "^4.5.4",
+    "aws-sdk": "^2.6.11",
+    "btrz-logger": "^1.2.0",
+    "request-promise": "^4.1.1"
+  },
+  "devDependencies": {
+    "chai": "latest",
+    "chance": "0.7.1",
+    "istanbul": "^0.4.1",
+    "jsinspect": "latest",
+    "mocha": "2.5.3",
+    "mocha-multi": "latest",
+    "sinon": "^1.17.6",
+    "publish": "^0.5.0"
+  }
+}

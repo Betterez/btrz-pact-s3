@@ -1,0 +1,28 @@
+{
+  "consumer": {
+    "name": "baby"
+  },
+  "provider": {
+    "name": "song"
+  },
+  "interactions": [
+    {
+      "description": "the song for the baby",
+      "request": {
+        "method": "GET",
+        "path": "/baby/song"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json; charset=utf-8"
+        },
+        "body": {
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "pactSpecificationVersion": "1.0.0"
+  }
+}

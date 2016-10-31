@@ -149,38 +149,40 @@ class BtrzPactS3 {
 			});
 	}
 
-	verifyPacts(providerBaseUrl, providerName, _s3Client_) {
+	verifyPacts(providerBaseUrl, providerName, _s3Client_, _pact_) {
 		let self = this;
-		const pact = require('@pact-foundation/pact-node');
-
-		let s3Client = _s3Client_ || new AWS.S3({
+		const pact = _pact_ || require('@pact-foundation/pact-node');
+		const s3Client = _s3Client_ || new AWS.S3({
 			accessKeyId: this.accessKeyId,
 			secretAccessKey: this.secretAccessKey
 		});
 
 		function resolver(resolve, reject) {
 			s3Client.listObjects({Bucket: self.bucket}, (err, data) => {
+				if (err) {
+					return reject(err);
+				}
+				
 				let keysFromProvider = data.Contents.filter((content) => {
-					return (content.Key.indexOf(`${providerName}/`) === 0);
+					return (content.Key.indexOf(`${providerName.toLowerCase()}/`) === 0);
 				}).map((content) => {return content.Key});
 
-				if (!keysFromProvider) {
+				if (keysFromProvider.length === 0) {
 					return reject(new Error(`There are no pacts for the provider ${providerName}`));
 				}
 
+				let pactFiles = [];
 				for (var i=0; i < keysFromProvider.length; i++) {
-					let file = fs.createWriteStream(`./pacts-to-verify/${path.basename(keysFromProvider[i])}`);
+					let filePath = `${__dirname}/pacts-to-verify/${path.basename(keysFromProvider[i])}`;
+					let file = fs.createWriteStream(filePath);
 					s3Client.getObject({Bucket: self.bucket, Key: keysFromProvider[i]}).createReadStream().pipe(file);
+					pactFiles.push(filePath);
 				}
-				console.log(keysFromProvider);
+				
 				var opts = {
 			    providerBaseUrl: providerBaseUrl,
-			    pactUrls: [`${__dirname}/pacts-to-verify`]
-			    //pactUrls: [`${__dirname}/pacts-to-verify/sales-inventory.json`]  // Array of local Pact file paths or Pact Broker URLs (http based). Required.
+			    pactUrls: pactFiles
 				};
-
-				// let access = fs.createWriteStream(`./results.${providerName}.log`, { flags: 'a' }),
-				// 	error = fs.createWriteStream(`./error.${providerName}.log`, { flags: 'a' });
 
 				pact.verifyPacts(opts)
 					.then((result) => {					
@@ -192,12 +194,6 @@ class BtrzPactS3 {
 			});
 		}
 		return new Promise(resolver);
-	}
-
-	checkDifferences(differences) {
-		return differences.filter((dif) => {
-			return (dif.rhs && dif.kind === "N")
-		});
 	}
 
 	getFileKey(filePath) {
@@ -217,7 +213,7 @@ class BtrzPactS3 {
 					return reject(new Error(`The provider name was not especified in the ${fileName} pact file`));
 				}
 
-				return resolve(`${pact.provider.name}/${pact.consumer.name}/${fileName}`);
+				return resolve(`${pact.provider.name.toLowerCase()}/${pact.consumer.name.toLowerCase()}/${fileName}`);
 			});
 		}
 		return new Promise(resolver);

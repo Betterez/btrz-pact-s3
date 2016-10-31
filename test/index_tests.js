@@ -150,6 +150,96 @@ describe("BtrzPactS3", function () {
 
   });
 
+  describe("verifyPacts", function () {
+    let pact = require('@pact-foundation/pact-node');
+
+    it("should verify the pacts with the correct params", function (done) {
+      let providerBaseUrl = "http://api-host.com:3010";
+
+      s3Client = new AWS.S3({
+        accessKeyId: options.accessKeyId,
+        secretAccessKey: options.secretAccessKey
+      });
+
+      sinon.stub(s3Client, "listObjects", (opts, cb) => {
+        expect(opts.Bucket).to.be.eql(options.bucket);
+        s3Client.listObjects.restore();
+        cb(null,{ Contents: [{Key: "provider/consumer/pact-file.json"}]});
+      });
+
+      sinon.stub(s3Client, "getObject", (opts, cb) => {
+        expect(opts.Bucket).to.be.eql(options.bucket);
+        expect(opts.Key).to.be.eql("provider/consumer/pact-file.json");
+        s3Client.getObject.restore();
+        
+        class S3MockObject {
+          static createReadStream() {
+            return require("fs").createReadStream("./");
+          }
+        }
+        return S3MockObject;
+      });
+
+      sinon.stub(pact, "verifyPacts", (opts) => {
+        expect(opts.providerBaseUrl).to.be.eql(providerBaseUrl);
+        expect(opts.pactUrls[0]).to.contain("pact-file.json");
+        pact.verifyPacts.restore();
+        return Promise.resolve();
+      });
+
+      btrzPactS3.verifyPacts(providerBaseUrl, "provider", s3Client, pact)
+        .then((result) => {
+          done();
+        })
+        .catch((err) => {
+          done(err);
+        });
+    });
+
+    it("should reject an error if S3 has no pact files for the provider/consumer", function (done) {
+      let providerBaseUrl = "http://api-host.com:3010";
+
+      s3Client = new AWS.S3({
+        accessKeyId: options.accessKeyId,
+        secretAccessKey: options.secretAccessKey
+      });
+
+      sinon.stub(s3Client, "listObjects", (opts, cb) => {
+        expect(opts.Bucket).to.be.eql(options.bucket);
+        s3Client.listObjects.restore();
+        cb(null,{ Contents: [{Key: "another_provider/consumer/pact-file.json"}]});
+      });
+
+      btrzPactS3.verifyPacts(providerBaseUrl, "provider", s3Client, pact)
+        .catch((err) => {
+          expect(err).to.be.ok;
+          done();
+        });
+    });
+
+    it("should reject an error if s3Client.listObjects() returns an error", function (done) {
+      let providerBaseUrl = "http://api-host.com:3010";
+
+      s3Client = new AWS.S3({
+        accessKeyId: options.accessKeyId,
+        secretAccessKey: options.secretAccessKey
+      });
+
+      sinon.stub(s3Client, "listObjects", (opts, cb) => {
+        expect(opts.Bucket).to.be.eql(options.bucket);
+        s3Client.listObjects.restore();
+        cb(new Error("error!"), {});
+      });
+
+      btrzPactS3.verifyPacts(providerBaseUrl, "provider", s3Client, pact)
+        .catch((err) => {
+          expect(err).to.be.ok;
+          done();
+        });
+    });
+
+  });
+
   describe("getFileKey", function () {
   	
   	it("should return the key based on the pact file", function (done) {

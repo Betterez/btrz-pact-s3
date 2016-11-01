@@ -161,23 +161,21 @@ describe("BtrzPactS3", function () {
         secretAccessKey: options.secretAccessKey
       });
 
-      sinon.stub(s3Client, "listObjects", (opts, cb) => {
+      sinon.stub(s3Client, "listObjects", (opts) => {
         expect(opts.Bucket).to.be.eql(options.bucket);
         s3Client.listObjects.restore();
-        cb(null,{ Contents: [{Key: "provider/consumer/pact-file.json"}]});
+        return {
+          promise: function () {return Promise.resolve({ Contents: [{Key: "provider/consumer/pact-file.json"}]});}
+        };
       });
 
-      sinon.stub(s3Client, "getObject", (opts, cb) => {
+      sinon.stub(s3Client, "getObject", (opts) => {
         expect(opts.Bucket).to.be.eql(options.bucket);
         expect(opts.Key).to.be.eql("provider/consumer/pact-file.json");
         s3Client.getObject.restore();
-        
-        class S3MockObject {
-          static createReadStream() {
-            return require("fs").createReadStream("./");
-          }
-        }
-        return S3MockObject;
+        return {
+          promise: function () {return Promise.resolve("{testing:true}");}
+        };
       });
 
       sinon.stub(pact, "verifyPacts", (opts) => {
@@ -204,10 +202,12 @@ describe("BtrzPactS3", function () {
         secretAccessKey: options.secretAccessKey
       });
 
-      sinon.stub(s3Client, "listObjects", (opts, cb) => {
+      sinon.stub(s3Client, "listObjects", (opts) => {
         expect(opts.Bucket).to.be.eql(options.bucket);
         s3Client.listObjects.restore();
-        cb(null,{ Contents: [{Key: "another_provider/consumer/pact-file.json"}]});
+        return {
+          promise: function () {return Promise.resolve({ Contents: [{Key: "another_provider/consumer/pact-file.json"}]});}
+        };
       });
 
       btrzPactS3.verifyPacts(providerBaseUrl, "provider", s3Client, pact)
@@ -225,10 +225,12 @@ describe("BtrzPactS3", function () {
         secretAccessKey: options.secretAccessKey
       });
 
-      sinon.stub(s3Client, "listObjects", (opts, cb) => {
+      sinon.stub(s3Client, "listObjects", (opts) => {
         expect(opts.Bucket).to.be.eql(options.bucket);
         s3Client.listObjects.restore();
-        cb(new Error("error!"), {});
+        return {
+          promise: function () {return Promise.reject(new Error("error!"));}
+        };
       });
 
       btrzPactS3.verifyPacts(providerBaseUrl, "provider", s3Client, pact)

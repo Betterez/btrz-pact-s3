@@ -157,12 +157,8 @@ class BtrzPactS3 {
 			secretAccessKey: this.secretAccessKey
 		});
 
-		function resolver(resolve, reject) {
-			s3Client.listObjects({Bucket: self.bucket}, (err, data) => {
-				if (err) {
-					return reject(err);
-				}
-				
+		return s3Client.listObjects({Bucket: self.bucket}).promise()
+			.then((data) => {
 				let keysFromProvider = data.Contents.filter((content) => {
 					return (content.Key.indexOf(`${providerName.toLowerCase()}/`) === 0);
 				}).map((content) => {return content.Key});
@@ -171,29 +167,75 @@ class BtrzPactS3 {
 					return reject(new Error(`There are no pacts for the provider ${providerName}`));
 				}
 
-				let pactFiles = [];
-				for (var i=0; i < keysFromProvider.length; i++) {
-					let filePath = `${__dirname}/pacts-to-verify/${path.basename(keysFromProvider[i])}`;
-					let file = fs.createWriteStream(filePath);
-					s3Client.getObject({Bucket: self.bucket, Key: keysFromProvider[i]}).createReadStream().pipe(file);
-					pactFiles.push(filePath);
-				}
-				
-				var opts = {
-			    providerBaseUrl: providerBaseUrl,
-			    pactUrls: pactFiles
-				};
-
-				pact.verifyPacts(opts)
-					.then((result) => {					
-				    return resolve(result);
+				return Promise.all(keysFromProvider.map((key) => {
+					return s3Client.getObject({Bucket: self.bucket, Key: key}).promise()
+						.then((data) => {
+							let filePath = `${__dirname}/pacts-to-verify/${path.basename(key)}`;
+							fs.createWriteStream(filePath).write(data);
+							return filePath;
+						});
 					})
-					.catch((err) => {
-						return reject(err);
-					});
+				);
+			})
+			.then((filePaths) => {
+				let opts = {
+			    providerBaseUrl: providerBaseUrl,
+			    pactUrls: filePaths
+				};
+				return pact.verifyPacts(opts);
+			})
+			.catch((err) => {
+				if (this.logger) {
+					this.logger.error(`Error on BtrzPactS3::verifyPacts()`, err);
+				}
+				throw err;
 			});
-		}
-		return new Promise(resolver);
+
+		// function resolver(resolve, reject) {
+
+		// 	s3Client.listObjects({Bucket: self.bucket}, (err, data) => {
+		// 		if (err) {
+		// 			if (self.logger) {
+		// 				self.logger.error(`Error on BtrzPactS3::verifyPacts()`, err);
+		// 			}
+		// 			return reject(err);
+		// 		}
+				
+		// 		let keysFromProvider = data.Contents.filter((content) => {
+		// 			return (content.Key.indexOf(`${providerName.toLowerCase()}/`) === 0);
+		// 		}).map((content) => {return content.Key});
+
+		// 		if (keysFromProvider.length === 0) {
+		// 			return reject(new Error(`There are no pacts for the provider ${providerName}`));
+		// 		}
+
+		// 		let pactFiles = [];
+		// 		for (var i=0; i < keysFromProvider.length; i++) {
+		// 			let filePath = `${__dirname}/pacts-to-verify/${path.basename(keysFromProvider[i])}`;
+		// 			let file = fs.createWriteStream(filePath);
+		// 			//s3Client.getObject({Bucket: self.bucket, Key: keysFromProvider[i]}).createReadStream().pipe(file);
+		// 			s3Client.getObject({Bucket: self.bucket, Key: keysFromProvider[i]}).promise()
+		// 				.then((data) => {
+		// 					file.write(data);
+		// 					pactFiles.push(filePath);
+		// 				});
+		// 		}
+				
+		// 		var opts = {
+		// 	    providerBaseUrl: providerBaseUrl,
+		// 	    pactUrls: pactFiles
+		// 		};
+
+		// 		pact.verifyPacts(opts)
+		// 			.then((result) => {					
+		// 		    return resolve(result);
+		// 			})
+		// 			.catch((err) => {
+		// 				return reject(err);
+		// 			});
+		// 	});
+		// }
+		// return new Promise(resolver);
 	}
 
 	getFileKey(filePath) {

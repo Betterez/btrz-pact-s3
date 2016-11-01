@@ -172,7 +172,7 @@ class BtrzPactS3 {
 						.then((data) => {
 							let filePath = `${__dirname}/pacts-to-verify/${path.basename(key)}`;
 							return new Promise((resolve, reject) => {
-								fs.writeFile(filePath, JSON.stringify(data), "utf8", (err) => {
+								fs.writeFile(filePath, data.Body.data, "utf8", (err) => {
 								  if (err) {
 								  	return reject(err);
 							  	}

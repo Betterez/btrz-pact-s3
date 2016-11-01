@@ -171,8 +171,14 @@ class BtrzPactS3 {
 					return s3Client.getObject({Bucket: self.bucket, Key: key}).promise()
 						.then((data) => {
 							let filePath = `${__dirname}/pacts-to-verify/${path.basename(key)}`;
-							fs.createWriteStream(filePath).write(data);
-							return filePath;
+							return new Promise((resolve, reject) => {
+								fs.writeFile(filePath, data, (err) => {
+								  if (err) {
+								  	return reject(err);
+							  	}
+								  return resolve(filePath);
+								});
+							});
 						});
 					})
 				);
@@ -190,52 +196,6 @@ class BtrzPactS3 {
 				}
 				throw err;
 			});
-
-		// function resolver(resolve, reject) {
-
-		// 	s3Client.listObjects({Bucket: self.bucket}, (err, data) => {
-		// 		if (err) {
-		// 			if (self.logger) {
-		// 				self.logger.error(`Error on BtrzPactS3::verifyPacts()`, err);
-		// 			}
-		// 			return reject(err);
-		// 		}
-				
-		// 		let keysFromProvider = data.Contents.filter((content) => {
-		// 			return (content.Key.indexOf(`${providerName.toLowerCase()}/`) === 0);
-		// 		}).map((content) => {return content.Key});
-
-		// 		if (keysFromProvider.length === 0) {
-		// 			return reject(new Error(`There are no pacts for the provider ${providerName}`));
-		// 		}
-
-		// 		let pactFiles = [];
-		// 		for (var i=0; i < keysFromProvider.length; i++) {
-		// 			let filePath = `${__dirname}/pacts-to-verify/${path.basename(keysFromProvider[i])}`;
-		// 			let file = fs.createWriteStream(filePath);
-		// 			//s3Client.getObject({Bucket: self.bucket, Key: keysFromProvider[i]}).createReadStream().pipe(file);
-		// 			s3Client.getObject({Bucket: self.bucket, Key: keysFromProvider[i]}).promise()
-		// 				.then((data) => {
-		// 					file.write(data);
-		// 					pactFiles.push(filePath);
-		// 				});
-		// 		}
-				
-		// 		var opts = {
-		// 	    providerBaseUrl: providerBaseUrl,
-		// 	    pactUrls: pactFiles
-		// 		};
-
-		// 		pact.verifyPacts(opts)
-		// 			.then((result) => {					
-		// 		    return resolve(result);
-		// 			})
-		// 			.catch((err) => {
-		// 				return reject(err);
-		// 			});
-		// 	});
-		// }
-		// return new Promise(resolver);
 	}
 
 	getFileKey(filePath) {

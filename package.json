@@ -1,6 +1,6 @@
 {
   "name": "btrz-pact-s3",
-  "version": "0.4.6",
+  "version": "0.4.7",
   "description": "A consumer-driven Pact library for NodeJs to publish pacts to AWS S3 and verify them",
   "main": "index.js",
   "scripts": {

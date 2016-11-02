@@ -156,11 +156,6 @@ describe("BtrzPactS3", function () {
     it("should verify the pacts with the correct params", function (done) {
       let providerBaseUrl = "http://api-host.com:3010";
 
-      s3Client = new AWS.S3({
-        accessKeyId: options.accessKeyId,
-        secretAccessKey: options.secretAccessKey
-      });
-
       sinon.stub(s3Client, "listObjects", (opts) => {
         expect(opts.Bucket).to.be.eql(options.bucket);
         s3Client.listObjects.restore();
@@ -174,7 +169,7 @@ describe("BtrzPactS3", function () {
         expect(opts.Key).to.be.eql("provider/consumer/pact-file.json");
         s3Client.getObject.restore();
         return {
-          promise: function () {return Promise.resolve({testing:true});}
+          promise: function () {return Promise.resolve({Body: new Buffer("test")});}
         };
       });
 
@@ -197,11 +192,6 @@ describe("BtrzPactS3", function () {
     it("should reject an error if S3 has no pact files for the provider/consumer", function (done) {
       let providerBaseUrl = "http://api-host.com:3010";
 
-      s3Client = new AWS.S3({
-        accessKeyId: options.accessKeyId,
-        secretAccessKey: options.secretAccessKey
-      });
-
       sinon.stub(s3Client, "listObjects", (opts) => {
         expect(opts.Bucket).to.be.eql(options.bucket);
         s3Client.listObjects.restore();
@@ -219,11 +209,6 @@ describe("BtrzPactS3", function () {
 
     it("should reject an error if s3Client.listObjects() returns an error", function (done) {
       let providerBaseUrl = "http://api-host.com:3010";
-
-      s3Client = new AWS.S3({
-        accessKeyId: options.accessKeyId,
-        secretAccessKey: options.secretAccessKey
-      });
 
       sinon.stub(s3Client, "listObjects", (opts) => {
         expect(opts.Bucket).to.be.eql(options.bucket);

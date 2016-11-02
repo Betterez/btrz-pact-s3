@@ -48,7 +48,7 @@ class BtrzPactS3 {
 					Bucket: self.bucket,
 					Key: key,
 					ACL: "public-read",
-					Body: fs.createReadStream(pact)
+					Body: fs.createReadStream(pact, {encoding: "utf8", autoClose: true})
 				},
 				function (err, result) {
 					if (err) {
@@ -164,15 +164,20 @@ class BtrzPactS3 {
 				}).map((content) => {return content.Key});
 
 				if (keysFromProvider.length === 0) {
-					return reject(new Error(`There are no pacts for the provider ${providerName}`));
+					throw new Error(`There are no pacts for the provider ${providerName}`);
 				}
 
 				return Promise.all(keysFromProvider.map((key) => {
 					return s3Client.getObject({Bucket: self.bucket, Key: key}).promise()
 						.then((data) => {
+
+							if (!data.Body) {
+								throw new Error(`The file with key ${key} cannot be readed`);
+							}
+
 							let filePath = `${__dirname}/pacts-to-verify/${path.basename(key)}`;
 							return new Promise((resolve, reject) => {
-								fs.writeFile(filePath, JSON.stringify(data), "utf8", (err) => {
+								fs.writeFile(filePath, data.Body, "utf8", (err) => {
 								  if (err) {
 								  	return reject(err);
 							  	}
